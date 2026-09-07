@@ -1,0 +1,483 @@
+{
+  "name": "RitFactuur - Invoice Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-generation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "56e73660-6452-44b4-8be0-d33689ac73e9",
+      "name": "Webhook (vanuit app)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -144
+      ],
+      "webhookId": "2cad6a8b-b455-49da-8d5b-1a33fa843793"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.headers['x-ritfactuur-secret']}}",
+              "rightValue": "={{$env.RITFACTUUR_SHARED_SECRET}}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "19cdb700-9132-4eda-a379-4ba39a729aa8",
+      "name": "Geheim geldig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, invoice_number, total_incl_btw FROM invoices WHERE id = '{{$json.body.invoice_id}}';",
+        "options": {}
+      },
+      "id": "25d0dc79-c0c1-4316-985c-66ed539f6d52",
+      "name": "Factuurbedrag ophalen",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        624,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mollie.com/v2/payments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  amount: { currency: \"EUR\", value: ($json.total_incl_btw / 100).toFixed(2) },\n  description: \"Factuur \" + $json.invoice_number,\n  redirectUrl: $env.APP_URL + \"/factuur-betaald\",\n  webhookUrl: $env.N8N_BASE_URL + \"/webhook/invoice-payment-webhook\",\n  metadata: { invoice_id: $json.id }\n} }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "66d70258-a13d-499b-b92e-04bf1ddd5ec0",
+      "name": "Mollie-betaallink aanmaken",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        848,
+        -144
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Mhv8E6W1Z9Uh9fb9",
+          "name": "RitFactuur Mollie"
+        }
+      },
+      "notes": "Credential: RitFactuur Mollie (Header Auth). Bewust geen sequenceType — dit is een eenmalige betaling, dus iDEAL/Bancontact/etc. zijn hier wel beschikbaar (in tegenstelling tot de recurring RitFactuur-abonnementsbetaling)."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE invoices\nSET mollie_payment_id = '{{$json.id}}',\n    payment_url = '{{$json._links.checkout.href}}'\nWHERE id = '{{$('Factuurbedrag ophalen').item.json.id}}';",
+        "options": {}
+      },
+      "id": "f9c75dae-0c38-49d2-bbb4-22032a7ce683",
+      "name": "Factuur bijwerken met betaallink",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1056,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      },
+      "notes": "Gebeurt bewust vóór de PDF-generatie, zodat de betaallink al in de factuur-HTML kan staan."
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/internal/invoice-html/{{$('Geheim geldig?').item.json.body.invoice_id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RitFactuur-Secret",
+              "value": "={{$env.RITFACTUUR_SHARED_SECRET}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ba2251cb-43f3-46a5-8ccf-f53c4aefa648",
+      "name": "Factuur-HTML ophalen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        -144
+      ],
+      "notes": "Header-credential: X-RitFactuur-Secret: <N8N_SHARED_SECRET>"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.GOTENBERG_URL}}/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "1abcf72b-d755-457a-bdfa-aa19038330b5",
+      "name": "HTML naar PDF (Gotenberg)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1728,
+        -144
+      ],
+      "notes": "Multipart veld 'files' met bestandsnaam index.html en de HTML uit de vorige stap als body."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/storage/v1/object/invoices/{{$('Geheim geldig?').item.json.body.tenant_id}}/{{$('Geheim geldig?').item.json.body.invoice_id}}.pdf",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "939fa6a5-4ab9-45ca-850c-596f42196c79",
+      "name": "PDF uploaden naar Storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1952,
+        -144
+      ],
+      "notes": "Header-credential: Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE invoices\nSET pdf_url = '{{$env.SUPABASE_URL}}/storage/v1/object/public/invoices/{{$('Geheim geldig?').item.json.body.tenant_id}}/{{$('Geheim geldig?').item.json.body.invoice_id}}.pdf',\n    status = 'generated'\nWHERE id = '{{$('Geheim geldig?').item.json.body.invoice_id}}';",
+        "options": {}
+      },
+      "id": "7382f4c6-ed1c-4da8-afe2-9735be93f703",
+      "name": "Factuur bijwerken met PDF",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2160,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.N8N_BASE_URL}}/webhook/invoice-email",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "invoice_id",
+              "value": "={{$('Geheim geldig?').item.json.body.invoice_id}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6998ee7f-609e-4f37-9beb-760d32156c7d",
+      "name": "Verstuur-workflow triggeren",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2384,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "eaa082c0-0bba-4d3a-836d-6c34bdf778fd",
+      "name": "OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        2608,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "f1f73c48-2025-4016-a6f3-5b8f093da88a",
+      "name": "Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "data",
+        "options": {
+          "fileName": "index.html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1504,
+        -144
+      ],
+      "id": "3e8cc58b-56b3-4ad4-9e46-a0f591a6f53b",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.N8N_BASE_URL}}/webhook/invoice-whatsapp",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "invoice_id",
+              "value": "={{$('Geheim geldig?').item.json.body.invoice_id}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "69f7990d-6188-4d7c-9d3d-15e2eb29619a",
+      "name": "WhatsApp-workflow triggeren",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2368,
+        -400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (vanuit app)": {
+      "main": [
+        [
+          {
+            "node": "Geheim geldig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geheim geldig?": {
+      "main": [
+        [
+          {
+            "node": "Factuurbedrag ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuurbedrag ophalen": {
+      "main": [
+        [
+          {
+            "node": "Mollie-betaallink aanmaken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mollie-betaallink aanmaken": {
+      "main": [
+        [
+          {
+            "node": "Factuur bijwerken met betaallink",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuur bijwerken met betaallink": {
+      "main": [
+        [
+          {
+            "node": "Factuur-HTML ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuur-HTML ophalen": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML naar PDF (Gotenberg)": {
+      "main": [
+        [
+          {
+            "node": "PDF uploaden naar Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF uploaden naar Storage": {
+      "main": [
+        [
+          {
+            "node": "Factuur bijwerken met PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuur bijwerken met PDF": {
+      "main": [
+        [
+          {
+            "node": "Verstuur-workflow triggeren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verstuur-workflow triggeren": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp-workflow triggeren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "HTML naar PDF (Gotenberg)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp-workflow triggeren": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

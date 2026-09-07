@@ -1,0 +1,36 @@
+version: "3.8"
+
+# Self-hosted n8n + Gotenberg (HTML->PDF). Draait naast elkaar op één kleine
+# VPS (bv. Hetzner/DigitalOcean, ~€6-12/mnd). n8n heeft zelf een Postgres-
+# database nodig voor zijn eigen workflow-state — hier apart van de
+# RitFactuur-Supabase-database, om die twee niet te vermengen.
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - WEBHOOK_URL=${N8N_BASE_URL}
+      - GENERIC_TIMEZONE=Europe/Amsterdam
+      # Eigen gedeeld geheim, gelezen door de workflows als
+      # $env.RITFACTUUR_SHARED_SECRET — moet gelijk zijn aan
+      # N8N_SHARED_SECRET in de Next.js .env.
+      - RITFACTUUR_SHARED_SECRET=${N8N_SHARED_SECRET}
+      - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - APP_URL=${NEXT_PUBLIC_APP_URL}
+      - GOTENBERG_URL=http://gotenberg:3000
+      - N8N_BASE_URL=${N8N_BASE_URL}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+
+volumes:
+  n8n_data:

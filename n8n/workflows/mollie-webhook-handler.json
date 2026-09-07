@@ -1,0 +1,243 @@
+{
+  "name": "RitFactuur - Mollie Webhook Handler (SaaS billing)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mollie-subscription-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1d855623-e916-4687-a587-d323d84d5a9d",
+      "name": "Mollie Webhook (recurring)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        64
+      ],
+      "webhookId": "aec24472-3659-44b0-a921-9b1c3c6fc10c"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.mollie.com/v2/payments/{{$json.body.id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "092a54d7-8679-4728-afbc-196362d01b9f",
+      "name": "Betaalstatus opnieuw ophalen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        64
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Mhv8E6W1Z9Uh9fb9",
+          "name": "RitFactuur Mollie"
+        }
+      },
+      "notes": "Vertrouw nooit de webhook-payload zelf — altijd opnieuw ophalen bij Mollie."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT sp.id AS subscription_payment_id, sp.subscription_id, sp.tenant_id\nFROM subscription_payments sp\nWHERE sp.mollie_payment_id = '{{$json.id}}';",
+        "options": {}
+      },
+      "id": "361fc603-ab52-4109-92ed-7ef280ad4bc4",
+      "name": "Bijbehorende betaling opzoeken",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -448,
+        64
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$('Betaalstatus opnieuw ophalen').item.json.status}}",
+              "rightValue": "paid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a0b99b1e-9ff0-4dcc-83f0-31f168375b9b",
+      "name": "Is betaald?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE subscription_payments SET status = 'paid', paid_at = now() WHERE id = '{{$json.subscription_payment_id}}';\nUPDATE subscriptions SET status = 'active', current_period_start = CURRENT_DATE, current_period_end = CURRENT_DATE + INTERVAL '1 month' WHERE id = '{{$json.subscription_id}}';\nUPDATE tenants SET subscription_status = 'active' WHERE id = '{{$json.tenant_id}}';",
+        "options": {}
+      },
+      "id": "87e287e1-7e7d-467d-b7f5-90ad602cf455",
+      "name": "Abonnement activeren",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE subscription_payments SET status = '{{$('Betaalstatus opnieuw ophalen').item.json.status}}' WHERE id = '{{$json.subscription_payment_id}}';\nUPDATE subscriptions SET status = 'past_due' WHERE id = '{{$json.subscription_id}}';\nUPDATE tenants SET subscription_status = 'past_due' WHERE id = '{{$json.tenant_id}}';",
+        "options": {}
+      },
+      "id": "4865bd29-fe0f-48af-ab9c-b4fd17a2bf42",
+      "name": "Abonnement op past_due zetten",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        128
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      },
+      "notes": "Dunning/opzegging na herhaald falen is bewust simpel gehouden in v1 — geen automatische opzegging, wel zichtbaar in het dashboard."
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "e8026610-0b55-45c3-a1e1-adf9f2830782",
+      "name": "OK aan Mollie",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        64
+      ]
+    }
+  ],
+  "connections": {
+    "Mollie Webhook (recurring)": {
+      "main": [
+        [
+          {
+            "node": "Betaalstatus opnieuw ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Betaalstatus opnieuw ophalen": {
+      "main": [
+        [
+          {
+            "node": "Bijbehorende betaling opzoeken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bijbehorende betaling opzoeken": {
+      "main": [
+        [
+          {
+            "node": "Is betaald?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is betaald?": {
+      "main": [
+        [
+          {
+            "node": "Abonnement activeren",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Abonnement op past_due zetten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abonnement activeren": {
+      "main": [
+        [
+          {
+            "node": "OK aan Mollie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abonnement op past_due zetten": {
+      "main": [
+        [
+          {
+            "node": "OK aan Mollie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "name": "RitFactuur - Invoice Email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-email",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cc68761b-1c23-412d-b2ce-e4f6206220f5",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -144
+      ],
+      "webhookId": "edbaa0c6-edd6-41c7-8269-ea0f34cd89d0",
+      "notes": "Getriggerd door de Invoice Generation workflow, of handmatig via de 'Verstuur' actie in het dashboard."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.id, i.invoice_number, i.pdf_url, i.payment_url, i.total_incl_btw, c.email AS client_email, c.name AS client_name, t.company_name\nFROM invoices i\nJOIN clients c ON c.id = i.client_id\nJOIN tenants t ON t.id = i.tenant_id\nWHERE i.id = '{{$json.body.invoice_id}}';",
+        "options": {}
+      },
+      "id": "e1fe498b-7d13-4f3a-ac6a-9bd47bc34bd9",
+      "name": "Factuurgegevens ophalen",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        304,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$json.pdf_url}}",
+        "options": {}
+      },
+      "id": "42e81920-53ac-484d-959e-20c913e1f74d",
+      "name": "PDF downloaden",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "info@elhoucineautomation.nl",
+        "toEmail": "={{$('Factuurgegevens ophalen').item.json.client_email}}",
+        "subject": "=Factuur {{$('Factuurgegevens ophalen').item.json.invoice_number}} van {{$('Factuurgegevens ophalen').item.json.company_name}}",
+        "emailFormat": "text",
+        "text": "=Beste {{$('Factuurgegevens ophalen').item.json.client_name}},\n\nBijgevoegd vindt u factuur {{$('Factuurgegevens ophalen').item.json.invoice_number}}.\n\nDirect online betalen (o.a. met iDEAL) kan via deze link:\n{{$('Factuurgegevens ophalen').item.json.payment_url}}\n\nMet vriendelijke groet,\n{{$('Factuurgegevens ophalen').item.json.company_name}}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "0c3c8238-72da-4fee-88a7-f32d7fd886fc",
+      "name": "Factuur mailen",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        752,
+        -144
+      ],
+      "webhookId": "36f701fa-af85-4463-b225-2a7e0b1ec10e",
+      "credentials": {
+        "smtp": {
+          "id": "7OLB3J1z24aUznz6",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE invoices SET status = 'sent', sent_at = now() WHERE id = '{{$('Factuurgegevens ophalen').item.json.id}}';",
+        "options": {}
+      },
+      "id": "4adc5438-589e-4431-936b-35b01ae200d3",
+      "name": "Factuur markeren als verstuurd",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        960,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "d16b20b7-36d0-45c5-bfba-e11af40f6320",
+      "name": "OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1184,
+        -144
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Factuurgegevens ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuurgegevens ophalen": {
+      "main": [
+        [
+          {
+            "node": "PDF downloaden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF downloaden": {
+      "main": [
+        [
+          {
+            "node": "Factuur mailen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuur mailen": {
+      "main": [
+        [
+          {
+            "node": "Factuur markeren als verstuurd",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuur markeren als verstuurd": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

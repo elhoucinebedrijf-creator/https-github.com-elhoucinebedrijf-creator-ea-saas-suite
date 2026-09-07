@@ -1,0 +1,195 @@
+{
+  "name": "RitFactuur - Invoice Payment Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-payment-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e1204a21-c05f-44d4-906b-a06a1ca2ae4e",
+      "name": "Mollie Webhook (factuurbetaling)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        64
+      ],
+      "webhookId": "f5123788-19da-4887-a293-58eab112936c"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.mollie.com/v2/payments/{{$json.body.id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "a774e4fc-a1a0-4707-a5cb-4e3663211583",
+      "name": "Betaalstatus opnieuw ophalen bij Mollie",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -448,
+        64
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Mhv8E6W1Z9Uh9fb9",
+          "name": "RitFactuur Mollie"
+        }
+      },
+      "notes": "Credential: RitFactuur Mollie. Vertrouw nooit de webhook-payload zelf — altijd opnieuw ophalen bij Mollie."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.status}}",
+              "rightValue": "paid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "71f1c95a-9299-4d5a-ae47-7e1f79cd59ef",
+      "name": "Is betaald?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE invoices\nSET status = 'paid', paid_at = now()\nWHERE mollie_payment_id = '{{$json.id}}';",
+        "options": {}
+      },
+      "id": "cfad0be3-f3c4-455b-8986-15fb938e0d14",
+      "name": "Factuur markeren als betaald",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "83dd9bb8-64f8-45d2-a578-11fb500fb4dc",
+      "name": "OK aan Mollie",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "23b33ce8-9b77-47db-8a02-f8ef0651644f",
+      "name": "OK (nog niet betaald)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        128
+      ]
+    }
+  ],
+  "connections": {
+    "Mollie Webhook (factuurbetaling)": {
+      "main": [
+        [
+          {
+            "node": "Betaalstatus opnieuw ophalen bij Mollie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Betaalstatus opnieuw ophalen bij Mollie": {
+      "main": [
+        [
+          {
+            "node": "Is betaald?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is betaald?": {
+      "main": [
+        [
+          {
+            "node": "Factuur markeren als betaald",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OK (nog niet betaald)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuur markeren als betaald": {
+      "main": [
+        [
+          {
+            "node": "OK aan Mollie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

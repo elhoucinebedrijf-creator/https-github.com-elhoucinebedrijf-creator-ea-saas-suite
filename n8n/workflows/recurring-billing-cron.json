@@ -1,0 +1,140 @@
+{
+  "name": "RitFactuur - Recurring Subscription Billing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a8d8de10-b1be-4067-96ba-a457f2beb331",
+      "name": "Elke dag 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, tenant_id, mollie_customer_id, mollie_mandate_id, price_cents\nFROM subscriptions\nWHERE status = 'active' AND current_period_end <= CURRENT_DATE;",
+        "options": {}
+      },
+      "id": "2ee3783a-c6b4-4ec3-b685-0a8bd06dcc6a",
+      "name": "Te verlengen abonnementen ophalen",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        224,
+        -112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mollie.com/v2/payments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  amount: { currency: \"EUR\", value: ($json.price_cents / 100).toFixed(2) },\n  description: \"RitFactuur abonnement — automatische verlenging\",\n  customerId: $json.mollie_customer_id,\n  mandateId: $json.mollie_mandate_id,\n  sequenceType: \"recurring\",\n  webhookUrl: $env.N8N_BASE_URL + \"/webhook/mollie-subscription-webhook\"\n} }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "99c8c5c5-29cf-4d7c-b278-03d0cc5efb74",
+      "name": "Vervolgbetaling aanmaken bij Mollie",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        -112
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Mhv8E6W1Z9Uh9fb9",
+          "name": "RitFactuur Mollie"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO subscription_payments (tenant_id, subscription_id, mollie_payment_id, amount_cents, status)\nVALUES (\n  '{{$('Te verlengen abonnementen ophalen').item.json.tenant_id}}',\n  '{{$('Te verlengen abonnementen ophalen').item.json.id}}',\n  '{{$json.id}}',\n  {{$('Te verlengen abonnementen ophalen').item.json.price_cents}},\n  'pending'\n);",
+        "options": {}
+      },
+      "id": "85ae3710-e4ff-4e3e-a4fc-1b65e8cd4a09",
+      "name": "Betaling loggen (pending)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        -112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      },
+      "notes": "Bevestiging (paid/failed) komt binnen via de Mollie Webhook Handler-workflow, die deze rij bijwerkt op mollie_payment_id."
+    }
+  ],
+  "connections": {
+    "Elke dag 06:00": {
+      "main": [
+        [
+          {
+            "node": "Te verlengen abonnementen ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Te verlengen abonnementen ophalen": {
+      "main": [
+        [
+          {
+            "node": "Vervolgbetaling aanmaken bij Mollie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vervolgbetaling aanmaken bij Mollie": {
+      "main": [
+        [
+          {
+            "node": "Betaling loggen (pending)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

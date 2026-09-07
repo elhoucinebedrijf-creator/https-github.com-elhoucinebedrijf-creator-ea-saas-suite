@@ -1,0 +1,297 @@
+{
+  "name": "RitFactuur - Tenant Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tenant-onboarding",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ba5fc1f9-72ea-4198-9ab2-9bc4ba203051",
+      "name": "Mollie Webhook (eerste betaling)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        80
+      ],
+      "webhookId": "663356b0-c3f8-4ced-8eaa-0229960c8fd4"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.mollie.com/v2/payments/{{$json.body.id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "156a3ecf-e7dc-46f8-9ffd-3e46785e68b3",
+      "name": "Betaalstatus opnieuw ophalen bij Mollie",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -448,
+        80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Mhv8E6W1Z9Uh9fb9",
+          "name": "RitFactuur Mollie"
+        }
+      },
+      "notes": "Vertrouw NOOIT de webhook-payload zelf — Mollie stuurt alleen een id, status moet altijd opnieuw opgehaald worden via de API (Mollie-vereiste)."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.status}}",
+              "rightValue": "paid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2a362b32-dabc-4b84-93df-8f5b46d654fa",
+      "name": "Is betaald?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO tenants (company_name, kvk_number, btw_number, iban, subscription_status)\nVALUES ('{{$json.metadata.company_name}}', '{{$json.metadata.kvk_number}}', '{{$json.metadata.btw_number}}', '{{$json.metadata.iban}}', 'active')\nRETURNING id;",
+        "options": {}
+      },
+      "id": "ec11e0d7-0c3a-4342-a554-cd38862cabbf",
+      "name": "Tenant aanmaken",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO profiles (id, tenant_id, role, email)\nVALUES ('{{$node[\"Betaalstatus opnieuw ophalen bij Mollie\"].json.metadata.supabase_user_id}}', '{{$json.id}}', 'owner', '{{$node[\"Betaalstatus opnieuw ophalen bij Mollie\"].json.metadata.email}}');",
+        "options": {}
+      },
+      "id": "9a7e7a66-2403-4638-b8e2-cfedebccb9fb",
+      "name": "Profiel koppelen aan tenant",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO subscriptions (tenant_id, plan, status, mollie_customer_id, price_cents, current_period_start, current_period_end)\nVALUES ('{{$node[\"Tenant aanmaken\"].json.id}}', '{{$node[\"Betaalstatus opnieuw ophalen bij Mollie\"].json.metadata.plan}}', 'active', '{{$node[\"Betaalstatus opnieuw ophalen bij Mollie\"].json.customerId}}', {{$node[\"Betaalstatus opnieuw ophalen bij Mollie\"].json.metadata.price_cents}}, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 month');",
+        "options": {}
+      },
+      "id": "7e517db7-6cdb-43aa-b247-b0e8b6a2dd1e",
+      "name": "Abonnement aanmaken",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "info@elhoucineautomation.nl",
+        "toEmail": "={{$node[\"Betaalstatus opnieuw ophalen bij Mollie\"].json.metadata.email}}",
+        "subject": "Welkom bij RitFactuur",
+        "emailFormat": "text",
+        "text": "Welkom bij RitFactuur! Je account staat klaar — log in om je eerste rit te uploaden.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "fd4de21f-8f18-45d6-af92-5f69979a69d9",
+      "name": "Welkomstmail versturen",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        0
+      ],
+      "webhookId": "31db309f-0bb3-49d2-bed1-d022ef019e68",
+      "credentials": {
+        "smtp": {
+          "id": "7OLB3J1z24aUznz6",
+          "name": "SMTP account"
+        }
+      },
+      "notes": "Configureer een SMTP- of transactionele e-mail-credential (bv. Resend/Postmark)."
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7ad47e51-ebf0-4987-8aba-ce8194c0028b",
+      "name": "OK aan Mollie",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "0389f73e-4ae2-408f-8651-aa897dcf1704",
+      "name": "OK (nog niet betaald)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        208
+      ]
+    }
+  ],
+  "connections": {
+    "Mollie Webhook (eerste betaling)": {
+      "main": [
+        [
+          {
+            "node": "Betaalstatus opnieuw ophalen bij Mollie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Betaalstatus opnieuw ophalen bij Mollie": {
+      "main": [
+        [
+          {
+            "node": "Is betaald?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is betaald?": {
+      "main": [
+        [
+          {
+            "node": "Tenant aanmaken",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OK (nog niet betaald)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tenant aanmaken": {
+      "main": [
+        [
+          {
+            "node": "Profiel koppelen aan tenant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Profiel koppelen aan tenant": {
+      "main": [
+        [
+          {
+            "node": "Abonnement aanmaken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abonnement aanmaken": {
+      "main": [
+        [
+          {
+            "node": "Welkomstmail versturen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Welkomstmail versturen": {
+      "main": [
+        [
+          {
+            "node": "OK aan Mollie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

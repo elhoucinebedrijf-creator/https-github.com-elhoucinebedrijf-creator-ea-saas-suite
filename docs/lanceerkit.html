@@ -1,0 +1,732 @@
+<title>RitFactuur Lanceerkit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #f3f7f4;
+    --surface: #ffffff;
+    --surface-2: #eef4f0;
+    --ink: #15231c;
+    --ink-muted: #52655b;
+    --ink-faint: #7c8b82;
+    --line: #dbe6de;
+    --line-soft: #e8f0ea;
+    --accent: #2f7d63;
+    --accent-deep: #1d5645;
+    --accent-soft: #e2efe7;
+    --accent-ink: #ffffff;
+    --warn-bg: #fbf1de;
+    --warn-line: #edd9ad;
+    --warn-ink: #7a5518;
+    --chip-bg: #eef4f0;
+    --shadow: 0 1px 2px rgba(21, 35, 28, 0.04), 0 8px 24px -12px rgba(21, 35, 28, 0.14);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101713;
+      --surface: #161f19;
+      --surface-2: #1a251e;
+      --ink: #eaf2ec;
+      --ink-muted: #a9bab0;
+      --ink-faint: #7f9187;
+      --line: #263429;
+      --line-soft: #202d24;
+      --accent: #5fb494;
+      --accent-deep: #8ed0b6;
+      --accent-soft: #1d2e25;
+      --accent-ink: #0d1712;
+      --warn-bg: #2a2313;
+      --warn-line: #4a3c1a;
+      --warn-ink: #e8c987;
+      --chip-bg: #1a251e;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #101713;
+    --surface: #161f19;
+    --surface-2: #1a251e;
+    --ink: #eaf2ec;
+    --ink-muted: #a9bab0;
+    --ink-faint: #7f9187;
+    --line: #263429;
+    --line-soft: #202d24;
+    --accent: #5fb494;
+    --accent-deep: #8ed0b6;
+    --accent-soft: #1d2e25;
+    --accent-ink: #0d1712;
+    --warn-bg: #2a2313;
+    --warn-line: #4a3c1a;
+    --warn-ink: #e8c987;
+    --chip-bg: #1a251e;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+
+  a { color: var(--accent-deep); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3 {
+    font-family: "Fraunces", ui-serif, Georgia, serif;
+    font-weight: 600;
+    color: var(--ink);
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+  }
+
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- header ---------- */
+
+  header.top {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .top-inner {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 40px;
+  }
+
+  .top-inner .label { margin-bottom: 14px; display: block; }
+
+  .top-inner h1 {
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    line-height: 1.12;
+  }
+
+  .top-inner .subtitle {
+    margin-top: 14px;
+    max-width: 58ch;
+    color: var(--ink-muted);
+    font-size: 1.05rem;
+  }
+
+  .meta-row {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: var(--chip-bg);
+    border: 1px solid var(--line);
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+  }
+
+  .meta-chip strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- in-page nav ---------- */
+
+  nav.jump {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  nav.jump .wrap {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  nav.jump a {
+    flex: none;
+    text-decoration: none;
+    color: var(--ink-muted);
+    font-size: 0.86rem;
+    font-weight: 600;
+    padding: 7px 13px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  nav.jump a:hover { color: var(--ink); background: var(--surface-2); }
+
+  /* ---------- sections ---------- */
+
+  main { padding: 8px 0 96px; }
+
+  section.block {
+    padding: 56px 0 8px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  section.block:first-of-type { border-top: none; padding-top: 44px; }
+
+  .block-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+
+  .block-num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+  }
+
+  section.block h2 { font-size: 1.55rem; }
+
+  section.block > .lede {
+    margin: 12px 0 30px;
+    max-width: 60ch;
+    color: var(--ink-muted);
+  }
+
+  h3.sub {
+    font-family: "Source Sans 3", sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--ink);
+    margin: 34px 0 14px;
+  }
+
+  h3.sub:first-of-type { margin-top: 0; }
+
+  /* ---------- checklist ---------- */
+
+  ul.checklist {
+    list-style: none;
+    margin: 0 0 4px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  ul.checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 11px 4px;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 0.96rem;
+  }
+
+  ul.checklist li:last-child { border-bottom: none; }
+
+  .chk {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .chk.done { background: var(--accent); color: var(--accent-ink); }
+  .chk.open { border: 1.5px solid var(--ink-faint); background: transparent; }
+
+  li.done-item span.txt { color: var(--ink-muted); text-decoration: line-through; text-decoration-color: var(--line); text-decoration-thickness: 1.5px; }
+  li.open-item span.txt { color: var(--ink); }
+
+  /* ---------- callouts ---------- */
+
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    color: var(--warn-ink);
+    font-size: 0.92rem;
+    margin: 18px 0 30px;
+  }
+
+  .callout .glyph { flex: none; font-size: 1.1rem; line-height: 1.4; }
+  .callout p { margin: 0; }
+  .callout strong { color: inherit; }
+
+  /* ---------- pitch card ---------- */
+
+  .pitch {
+    background: var(--accent-soft);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    margin: 4px 0 30px;
+  }
+
+  .pitch .label { color: var(--accent-deep); }
+
+  .pitch p.line {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 1.28rem;
+    line-height: 1.4;
+    margin: 10px 0 0;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .value-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin: 8px 0 30px;
+  }
+
+  .value-card {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+
+  .value-card .k { font-weight: 700; font-size: 0.94rem; color: var(--ink); }
+  .value-card .v { margin-top: 4px; font-size: 0.87rem; color: var(--ink-muted); }
+
+  .taglist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 30px;
+  }
+
+  .tag {
+    font-size: 0.83rem;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink-muted);
+  }
+
+  /* ---------- message templates ---------- */
+
+  .templates {
+    display: grid;
+    gap: 22px;
+    margin: 4px 0 30px;
+  }
+
+  .tmpl-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+
+  .tmpl-label .dot {
+    width: 8px; height: 8px; border-radius: 999px; background: var(--accent);
+  }
+
+  /* whatsapp bubble */
+  .wa-frame {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .wa-bubble {
+    max-width: 86%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    padding: 12px 14px;
+    border-radius: 14px 14px 14px 3px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+
+  .wa-bubble .tick {
+    display: block;
+    margin-top: 8px;
+    text-align: right;
+    font-size: 0.72rem;
+    opacity: 0.75;
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  /* email */
+  .email-frame {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .email-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--surface-2);
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+  }
+
+  .email-head .subj {
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 3px;
+    font-size: 0.94rem;
+  }
+
+  .email-body {
+    padding: 18px;
+    font-size: 0.92rem;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+
+  /* phone script */
+  .script-frame {
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    font-size: 0.93rem;
+    color: var(--ink);
+  }
+
+  /* ---------- Q&A ---------- */
+
+  .qa {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 4px 0 30px;
+  }
+
+  .qa-item {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: var(--surface);
+  }
+
+  .qa-item .q {
+    font-weight: 700;
+    font-size: 0.94rem;
+    color: var(--ink);
+  }
+
+  .qa-item .a {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+  }
+
+  /* ---------- table-ish list for admin ---------- */
+
+  .admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 4px 0 30px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .admin-row {
+    display: grid;
+    grid-template-columns: 168px 1fr;
+    gap: 18px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .admin-row:last-child { border-bottom: none; }
+
+  .admin-row .k {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    color: var(--accent-deep);
+    padding-top: 2px;
+  }
+
+  .admin-row .v { font-size: 0.92rem; color: var(--ink); }
+  .admin-row .v p { margin: 0 0 8px; }
+  .admin-row .v p:last-child { margin-bottom: 0; }
+  .admin-row .v strong { color: var(--ink); }
+
+  @media (max-width: 620px) {
+    .admin-row { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---------- footer ---------- */
+
+  footer.end {
+    border-top: 1px solid var(--line);
+    padding: 32px 0 60px;
+  }
+
+  footer.end p {
+    margin: 0;
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto !important; }
+  }
+
+  html { scroll-behavior: smooth; }
+</style>
+
+<header class="top">
+  <div class="top-inner">
+    <span class="label">RitFactuur — lanceerkit</span>
+    <h1>Van live schakelaar naar eerste betalende klant.</h1>
+    <p class="subtitle">Een checklist voor de laatste controles, kant-en-klare tekst om klanten te werven, en een overzicht van wat er administratief bij komt kijken nu RitFactuur live staat.</p>
+    <div class="meta-row">
+      <span class="meta-chip">Voor: <strong>Elhoucine Automation</strong></span>
+      <span class="meta-chip">Product: <strong>RitFactuur</strong></span>
+      <span class="meta-chip">Status: <strong>Mollie live</strong></span>
+    </div>
+  </div>
+</header>
+
+<nav class="jump" aria-label="Secties">
+  <div class="wrap">
+    <a href="#checklist">1. Vóór de eerste klant</a>
+    <a href="#klanten">2. Klanten werven</a>
+    <a href="#administratie">3. Administratie &amp; belasting</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section class="block" id="checklist">
+    <div class="block-head">
+      <span class="block-num">01</span>
+      <h2>Vóór de eerste echte klant</h2>
+    </div>
+    <p class="lede">Wat vandaag al klopt, en wat je zelf nog even nakijkt voordat je de deur openzet.</p>
+
+    <h3 class="sub">Al bevestigd werkend</h3>
+    <ul class="checklist">
+      <li class="done-item"><span class="chk done">✓</span><span class="txt">Rit → factuur → PDF → betaallink → e-mail + WhatsApp, end-to-end getest</span></li>
+      <li class="done-item"><span class="chk done">✓</span><span class="txt">Oplopend herinneringsschema (dag 1 / 14 / 30) met betaallink, e-mail + WhatsApp</span></li>
+      <li class="done-item"><span class="chk done">✓</span><span class="txt">Mollie op live gezet — abonnement én betaallinks zijn nu echte transacties</span></li>
+      <li class="done-item"><span class="chk done">✓</span><span class="txt">Sentry-foutmonitoring actief</span></li>
+      <li class="done-item"><span class="chk done">✓</span><span class="txt">Algemene voorwaarden en privacybeleid met echte bedrijfsgegevens</span></li>
+    </ul>
+
+    <h3 class="sub">Nog zelf te doen</h3>
+    <ul class="checklist">
+      <li class="open-item"><span class="chk open"></span><span class="txt">Voorwaarden en privacybeleid één keer laten meelezen door een jurist</span></li>
+      <li class="open-item"><span class="chk open"></span><span class="txt">Zelf een live testbetaling van een klein bedrag doen — en meteen terugstorten/opzeggen — om te bevestigen dat écht geld goed doorstroomt</span></li>
+      <li class="open-item"><span class="chk open"></span><span class="txt">info@elhoucineautomation.nl dagelijks checken — hier komen systeemmails én klantvragen binnen</span></li>
+      <li class="open-item"><span class="chk open"></span><span class="txt">WhatsApp Business-profiel (naam, foto, bedrijfsinfo) van het gekoppelde nummer professioneel instellen</span></li>
+      <li class="open-item"><span class="chk open"></span><span class="txt">De eerste week Sentry en het Mollie-dashboard extra vaak checken</span></li>
+    </ul>
+  </section>
+
+  <section class="block" id="klanten">
+    <div class="block-head">
+      <span class="block-num">02</span>
+      <h2>Klanten werven</h2>
+    </div>
+    <p class="lede">Wie je zoekt, wat je zegt, en kant-en-klare berichten om te versturen.</p>
+
+    <h3 class="sub">Doelgroep</h3>
+    <div class="taglist">
+      <span class="tag">Zelfstandige taxi-ondernemers, 1–15 auto's</span>
+      <span class="tag">Facturatie nu nog in Excel</span>
+      <span class="tag">Zorgvervoer / WMO-ritten</span>
+      <span class="tag">Regio: heel Nederland</span>
+    </div>
+
+    <h3 class="sub">Kernboodschap</h3>
+    <div class="pitch">
+      <span class="label">De ene zin die je onthoudt</span>
+      <p class="line">"Je uploadt je ritten — RitFactuur maakt er de factuur van, stuurt 'm en zorgt dat 'ie betaald wordt."</p>
+    </div>
+
+    <h3 class="sub">Waarom overstappen — vier punten</h3>
+    <div class="value-grid">
+      <div class="value-card">
+        <div class="k">Tijd</div>
+        <div class="v">Scheelt ~15 minuten handwerk per factuur, geen Excel meer.</div>
+      </div>
+      <div class="value-card">
+        <div class="k">Sneller betaald</div>
+        <div class="v">Directe betaallink (iDEAL) in elke factuur en herinnering.</div>
+      </div>
+      <div class="value-card">
+        <div class="k">Bereik</div>
+        <div class="v">Factuur komt aan via e-mail én WhatsApp — mist niemand 'm.</div>
+      </div>
+      <div class="value-card">
+        <div class="k">Geen kopzorgen</div>
+        <div class="v">BTW-conform en gapless genummerd, automatisch geregeld.</div>
+      </div>
+    </div>
+
+    <h3 class="sub">Waar je ze vindt</h3>
+    <ul class="checklist">
+      <li class="open-item"><span class="chk open"></span><span class="txt">Facebook- en WhatsApp-groepen voor taxichauffeurs/ondernemers in je regio</span></li>
+      <li class="open-item"><span class="chk open"></span><span class="txt">Standplaatsen en taxicentrales — persoonlijk langsgaan werkt vaak beter dan online</span></li>
+      <li class="open-item"><span class="chk open"></span><span class="txt">Je eigen netwerk via Elhoucine Automation — bestaande klanten kennen vaak taxi-ondernemers</span></li>
+      <li class="open-item"><span class="chk open"></span><span class="txt">Mond-tot-mondreclame: geef de eerste 3–5 klanten een introductieprijs in ruil voor een referral</span></li>
+    </ul>
+
+    <h3 class="sub">Berichten om te versturen</h3>
+    <div class="templates">
+      <div>
+        <div class="tmpl-label"><span class="dot"></span>WhatsApp — eerste contact</div>
+        <div class="wa-frame">
+          <div class="wa-bubble">
+            Hoi [naam], ik zag dat je met [taxibedrijf] rijdt. Ik heb iets gebouwd waarmee je ritten in een paar klikken factureert — geen Excel meer, en je klant kan meteen online betalen. Kost je nu waarschijnlijk uren per week. Zin om het 2 minuten te zien?
+            <span class="tick">✓✓ gelezen</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="tmpl-label"><span class="dot"></span>E-mail — bedrijven &amp; zorgvervoer</div>
+        <div class="email-frame">
+          <div class="email-head">
+            Aan: [naam]@[bedrijf].nl
+            <div class="subj">Onderwerp: Minder tijd kwijt aan facturatie — RitFactuur</div>
+          </div>
+          <div class="email-body">Beste [naam],
+
+Ik kwam erachter dat [bedrijf] ritten nog handmatig factureert. Met RitFactuur zet u ritgegevens automatisch om in BTW-conforme facturen — die direct per e-mail én WhatsApp naar uw klant gaan, met een betaallink erin. Herinneringen bij te late betaling stuurt het systeem vanzelf.
+
+Benieuwd of dit uw administratie echt verlicht? Ik laat het u in 10 minuten zien.
+
+Met vriendelijke groet,
+Elhoucine — RitFactuur
+ritfactuur.elhoucineautomation.nl</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="tmpl-label"><span class="dot"></span>Telefoon / in persoon</div>
+        <div class="script-frame">
+          "RitFactuur zet je ritten automatisch om in facturen. Je uploadt of typt je ritten in, en de rest — BTW berekenen, factuurnummer, versturen, betaallink, herinneringen — gebeurt vanzelf. Dat scheelt je nu waarschijnlijk een paar uur per week."
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub">Als ze twijfelen</h3>
+    <div class="qa">
+      <div class="qa-item">
+        <div class="q">"Ik gebruik al Excel, waarom overstappen?"</div>
+        <div class="a">Excel rekent geen BTW uit, stuurt geen herinneringen en je houdt zelf factuurnummers bij. RitFactuur doet dat automatisch — reken op zo'n 15 minuten bespaard per factuur.</div>
+      </div>
+      <div class="qa-item">
+        <div class="q">"Is dit veilig, voldoet het aan de AVG?"</div>
+        <div class="a">Ja — gegevens staan afgeschermd per bedrijf opgeslagen, en er is een privacybeleid conform de AVG.</div>
+      </div>
+      <div class="qa-item">
+        <div class="q">"Wat kost het?"</div>
+        <div class="a">Vanaf €29 per maand voor tot 5 voertuigen, maandelijks opzegbaar — geen langlopend contract.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="administratie">
+    <div class="block-head">
+      <span class="block-num">03</span>
+      <h2>Administratie &amp; belasting</h2>
+    </div>
+    <p class="lede">Wat er praktisch bij komt kijken nu er inkomsten uit RitFactuur binnenkomen bij Elhoucine Automation.</p>
+
+    <div class="callout">
+      <span class="glyph">⚠️</span>
+      <p><strong>Geen fiscaal advies.</strong> Dit is een overzicht van wat er waarschijnlijk speelt, geen belastingadvies. Laat dit door je boekhouder of accountant bevestigen zodra je meer dan een handjevol klanten hebt.</p>
+    </div>
+
+    <div class="admin-list">
+      <div class="admin-row">
+        <div class="k">KVK</div>
+        <div class="v">
+          <p>Check of de bedrijfsactiviteit "software-as-a-service" al onder je huidige SBI-code bij Elhoucine Automation valt. Zo niet, kun je gratis een activiteit toevoegen via het KVK-portaal.</p>
+        </div>
+      </div>
+      <div class="admin-row">
+        <div class="k">BTW-tarief</div>
+        <div class="v">
+          <p>RitFactuur-abonnementen zijn een <strong>digitale dienst</strong>: 21% BTW. Verwar dit niet met de 9% die in de facturen van je klanten zélf voor personenvervoer wordt gebruikt — dat is hun BTW, niet die van jou.</p>
+        </div>
+      </div>
+      <div class="admin-row">
+        <div class="k">Eigen facturen</div>
+        <div class="v">
+          <p>RitFactuur factureert taxiritten, niet software-abonnementen. Voor je eigen SaaS-klanten (de taxi-ondernemers die aan jóu betalen) gebruik je een gewoon boekhoudpakket of factuursjabloon, niet RitFactuur zelf.</p>
+        </div>
+      </div>
+      <div class="admin-row">
+        <div class="k">Kosten bijhouden</div>
+        <div class="v">
+          <p>Houd apart bij: Mollie-transactiekosten, hosting (Vercel, Supabase, je VPS), en eventuele Sentry-kosten. Die trek je af van de omzet voor je winst.</p>
+        </div>
+      </div>
+      <div class="admin-row">
+        <div class="k">BTW-aangifte</div>
+        <div class="v">
+          <p>Neem RitFactuur-omzet en -kosten gescheiden mee in je kwartaalaangifte, zodat je later precies kunt zien hoe het product presteert los van de rest van Elhoucine Automation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="end">
+  <div class="wrap">
+    <p>RitFactuur — samengesteld op basis van de status van vandaag. Werk dit bij zodra er iets wijzigt in prijzen, functies of bedrijfsgegevens.</p>
+  </div>
+</footer>

@@ -1,0 +1,272 @@
+{
+  "name": "RitFactuur - Overdue Invoice Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "c9011b5d-70fe-4b84-a73d-c0dba53d230d",
+      "name": "Elke dag 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE invoices SET status = 'overdue'\nWHERE status = 'sent' AND due_date < CURRENT_DATE\nRETURNING id, invoice_number, tenant_id, client_id;",
+        "options": {}
+      },
+      "id": "f5a77615-7e1c-4291-a42a-c3f764ed1a3d",
+      "name": "Facturen als te laat markeren",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        576,
+        -256
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "with schedule(reminder_number, days_after_due) as (\n  values (1, 1), (2, 14), (3, 30)\n),\ncandidates as (\n  select\n    i.id, i.invoice_number, i.due_date, i.total_incl_btw, i.payment_url,\n    c.email as client_email, c.phone as client_phone, c.name as client_name, t.company_name,\n    (CURRENT_DATE - i.due_date) as days_overdue,\n    coalesce((select max(r.reminder_number) from reminder_log r where r.invoice_id = i.id), 0) + 1 as next_reminder_number\n  from invoices i\n  join clients c on c.id = i.client_id\n  join tenants t on t.id = i.tenant_id\n  where i.status = 'overdue'\n)\nselect cd.*\nfrom candidates cd\njoin schedule s on s.reminder_number = cd.next_reminder_number\nwhere cd.days_overdue >= s.days_after_due;\n",
+        "options": {}
+      },
+      "id": "b84bbe05-9f0f-4314-beae-673532c956d4",
+      "name": "Volgende herinnering bepalen",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        784,
+        -64
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      },
+      "notes": "Oplopend schema: herinnering 1 op dag 1 na vervaldatum, herinnering 2 op dag 14, herinnering 3 (laatste waarschuwing) op dag 30. Daarna stuurt het systeem bewust niets meer automatisch — dat wordt een handmatige beslissing (bv. incasso)."
+    },
+    {
+      "parameters": {
+        "fromEmail": "info@elhoucineautomation.nl",
+        "toEmail": "={{$json.client_email}}",
+        "subject": "={{ $json.next_reminder_number === 3 ? `Laatste herinnering: factuur ${$json.invoice_number}` : $json.next_reminder_number === 2 ? `Tweede herinnering: factuur ${$json.invoice_number} nog openstaand` : `Herinnering: factuur ${$json.invoice_number} is nog niet betaald` }}",
+        "emailFormat": "text",
+        "text": "=={{ (() => {\n  const dueDate = new Date($json.due_date).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n  const payLine = $json.payment_url ? `\\n\\nDirect online betalen (o.a. met iDEAL): ${$json.payment_url}` : '';\n  if ($json.next_reminder_number === 3) {\n    return `Beste ${$json.client_name},\\n\\nDit is onze laatste herinnering voor factuur ${$json.invoice_number} (vervaldatum ${dueDate}), die nu ${$json.days_overdue} dagen openstaat. Is deze niet binnen 7 dagen voldaan, dan kunnen we genoodzaakt zijn incassomaatregelen te treffen.${payLine}\\n\\nHeeft u al betaald? Dan kunt u dit bericht als niet verzonden beschouwen.\\n\\nMet vriendelijke groet,\\n${$json.company_name}`;\n  }\n  if ($json.next_reminder_number === 2) {\n    return `Beste ${$json.client_name},\\n\\nFactuur ${$json.invoice_number} (vervaldatum ${dueDate}) staat nu al ${$json.days_overdue} dagen open. Wilt u deze op korte termijn voldoen?${payLine}\\n\\nMet vriendelijke groet,\\n${$json.company_name}`;\n  }\n  return `Beste ${$json.client_name},\\n\\nOnze administratie laat zien dat factuur ${$json.invoice_number} (vervaldatum ${dueDate}) nog niet is voldaan. Wilt u deze op korte termijn betalen?${payLine}\\n\\nMet vriendelijke groet,\\n${$json.company_name}`;\n})() }}\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "890d34d9-942f-4ae8-acb1-d3d827ea7b80",
+      "name": "Herinnering mailen",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        -368
+      ],
+      "webhookId": "11bfa2d2-cea7-45c1-95fa-15549d7f8d36",
+      "credentials": {
+        "smtp": {
+          "id": "7OLB3J1z24aUznz6",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO reminder_log (invoice_id, reminder_number)\nVALUES ('{{$('Volgende herinnering bepalen').item.json.id}}', {{$('Volgende herinnering bepalen').item.json.next_reminder_number}});\n",
+        "options": {}
+      },
+      "id": "16f32a08-5058-4008-a9fc-75b8f01f4e4c",
+      "name": "Herinnering loggen",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1760,
+        -96
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bdbf7e39-6c5e-4de0-9463-4d8357e803ce",
+              "leftValue": "={{$json.client_phone}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        976,
+        16
+      ],
+      "id": "dee365fe-567b-404d-94a4-c8d96ec4d52b",
+      "name": "Heeft telefoonnummer?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.client_phone || '';\nlet digits = raw.replace(/[^0-9]/g, '');\nif (digits.startsWith('0')) {\n  digits = '31' + digits.slice(1);\n}\n\nconst payLine = $json.payment_url ? ` Betaal direct: ${$json.payment_url}` : '';\nconst text = $json.next_reminder_number === 3\n  ? `Beste ${$json.client_name}, dit is onze laatste herinnering voor factuur ${$json.invoice_number} (${$json.days_overdue} dagen te laat). Bij uitblijven van betaling binnen 7 dagen kunnen incassomaatregelen volgen.${payLine} Al betaald? Dan kunt u dit negeren. - ${$json.company_name}`\n  : `Beste ${$json.client_name}, factuur ${$json.invoice_number} staat nog open (${$json.days_overdue} dagen na de vervaldatum). Wilt u deze op korte termijn voldoen?${payLine} - ${$json.company_name}`;\n\nreturn [{ json: { number: digits, text: text } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -160
+      ],
+      "id": "a659e0fc-39a0-4133-ace3-f1c668294601",
+      "name": "Telefoonnummer normaliseren"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.EVOLUTION_API_URL}}/message/sendText/{{$env.EVOLUTION_INSTANCE}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1360,
+        16
+      ],
+      "id": "37ea6211-b365-46d0-9a32-86b3054010fa",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u4cf3eHQzlZMDay3",
+          "name": "RitFactuur Evolution API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Elke dag 08:00": {
+      "main": [
+        [
+          {
+            "node": "Facturen als te laat markeren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facturen als te laat markeren": {
+      "main": [
+        [
+          {
+            "node": "Volgende herinnering bepalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Volgende herinnering bepalen": {
+      "main": [
+        [
+          {
+            "node": "Heeft telefoonnummer?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Herinnering mailen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Herinnering mailen": {
+      "main": [
+        [
+          {
+            "node": "Herinnering loggen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heeft telefoonnummer?": {
+      "main": [
+        [
+          {
+            "node": "Telefoonnummer normaliseren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telefoonnummer normaliseren": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

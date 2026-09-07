@@ -1,0 +1,283 @@
+{
+  "name": "RitFactuur - Ride Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ride-ingestion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6a52ee31-ff71-49e6-a8aa-bf13e29350cb",
+      "name": "Webhook (vanuit app)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        -64
+      ],
+      "webhookId": "9efcce2b-bf91-44b8-b47f-b7e1133e6d24"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.headers['x-ritfactuur-secret']}}",
+              "rightValue": "={{$env.RITFACTUUR_SHARED_SECRET}}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fcb705e0-2133-4ba0-83cb-43cf1bdb43d1",
+      "name": "Geheim geldig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        -64
+      ],
+      "notes": "RITFACTUUR_SHARED_SECRET moet gelijk zijn aan N8N_SHARED_SECRET in de app se .env"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, storage_path FROM file_uploads WHERE id = '{{$json.body.file_upload_id}}' AND tenant_id = '{{$json.body.tenant_id}}';",
+        "options": {}
+      },
+      "id": "9d7bb358-3f98-4a5e-9d45-337bc51e2d61",
+      "name": "Upload opzoeken",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        32,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/storage/v1/object/ride-uploads/{{$json.storage_path}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "51ebf5f3-8ce2-4803-acb5-5c2a71cb573d",
+      "name": "CSV downloaden uit Storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        256,
+        -144
+      ],
+      "notes": "Header-credential: Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vast CSV-sjabloon (v1, zie docs/setup.md):\n// ride_date,pickup_address,dropoff_address,distance_km,amount_excl_btw,client_name,external_ride_id\nconst csvText = $input.first().json.data || $input.first().binary?.data;\nconst text = typeof csvText === 'string' ? csvText : Buffer.from($input.first().binary.data.data, 'base64').toString('utf-8');\nconst lines = text.trim().split(/\\r?\\n/);\nconst header = lines[0].split(',').map(h => h.trim());\nconst rows = lines.slice(1).map(line => {\n  const cols = line.split(',');\n  const row = {};\n  header.forEach((h, i) => (row[h] = (cols[i] || '').trim()));\n  return row;\n});\nreturn rows.map(row => ({ json: row }));"
+      },
+      "id": "a353e999-e149-4881-92e8-eb476b631cb3",
+      "name": "CSV parsen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO rides (tenant_id, client_id, ride_date, pickup_address, dropoff_address, distance_km, amount_excl_btw, btw_rate, amount_incl_btw, source, file_upload_id, external_ride_id, status, raw_data)\nSELECT\n  '{{$('Geheim geldig?').item.json.body.tenant_id}}',\n  (SELECT id FROM clients WHERE tenant_id = '{{$('Geheim geldig?').item.json.body.tenant_id}}' AND name = '{{$json.client_name}}' LIMIT 1),\n  '{{$json.ride_date}}'::date,\n  '{{$json.pickup_address}}',\n  '{{$json.dropoff_address}}',\n  NULLIF('{{$json.distance_km}}', '')::numeric,\n  ROUND(('{{$json.amount_excl_btw}}')::numeric * 100),\n  9,\n  ROUND(('{{$json.amount_excl_btw}}')::numeric * 100 * 1.09),\n  'csv_upload',\n  '{{$('Upload opzoeken').item.json.id}}',\n  '{{$json.external_ride_id}}',\n  'unbilled',\n  '{{JSON.stringify($json)}}'::jsonb;",
+        "options": {}
+      },
+      "id": "6c7c8744-714e-4fde-974c-4141f2519006",
+      "name": "Rit toevoegen (per rij)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        704,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      },
+      "notes": "Draait per item (n8n voert deze node uit voor elke rij uit 'CSV parsen'). client_id blijft NULL als de klantnaam nog niet bestaat — koppel die rit later handmatig in het dashboard."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE file_uploads SET status = 'parsed', parsed_ride_count = {{$json.count || $runIndex + 1}} WHERE id = '{{$('Upload opzoeken').item.json.id}}';",
+        "options": {}
+      },
+      "id": "48d94b2b-9649-41df-8c69-11614c2b20cb",
+      "name": "Upload markeren als verwerkt",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        912,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "edfc8a6a-0c4b-4e58-bc39-620c8efadf35",
+      "name": "OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "2c1f0ff9-2893-4f29-aa95-42f96ce21d7c",
+      "name": "Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        64
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (vanuit app)": {
+      "main": [
+        [
+          {
+            "node": "Geheim geldig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geheim geldig?": {
+      "main": [
+        [
+          {
+            "node": "Upload opzoeken",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload opzoeken": {
+      "main": [
+        [
+          {
+            "node": "CSV downloaden uit Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSV downloaden uit Storage": {
+      "main": [
+        [
+          {
+            "node": "CSV parsen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSV parsen": {
+      "main": [
+        [
+          {
+            "node": "Rit toevoegen (per rij)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rit toevoegen (per rij)": {
+      "main": [
+        [
+          {
+            "node": "Upload markeren als verwerkt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload markeren als verwerkt": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

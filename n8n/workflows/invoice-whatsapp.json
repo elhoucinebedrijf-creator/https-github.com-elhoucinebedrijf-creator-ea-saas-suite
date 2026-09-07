@@ -1,0 +1,234 @@
+{
+  "name": "RitFactuur - Invoice WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "eb6bdf88-ae4f-4cef-84cd-85bb32a5cbfc",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        64
+      ],
+      "webhookId": "21cc0b7f-0c34-4b16-a4f9-74e1d7a12877",
+      "notes": "Getriggerd door Invoice Generation, naast (niet in plaats van) de e-mail."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.id, i.invoice_number, i.pdf_url, i.total_incl_btw, c.phone AS client_phone, c.name AS client_name, t.company_name\nFROM invoices i\nJOIN clients c ON c.id = i.client_id\nJOIN tenants t ON t.id = i.tenant_id\nWHERE i.id = '{{$json.body.invoice_id}}';",
+        "options": {}
+      },
+      "id": "39868d56-eb95-4ee4-ad85-f79fd7de81a6",
+      "name": "Factuurgegevens ophalen",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -448,
+        64
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.client_phone}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "be075dec-ee5b-4fda-bca7-a7dc17f94571",
+      "name": "Heeft telefoonnummer?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliseert een NL-telefoonnummer naar het formaat dat WhatsApp/Evolution\n// API verwacht: alleen cijfers, landcode voorop, geen voorloop-0.\n// Voorbeelden: \"+31 6 12345678\" of \"0612345678\" -> \"31612345678\".\nconst raw = $json.client_phone || '';\nlet digits = raw.replace(/[^0-9]/g, '');\nif (digits.startsWith('0')) {\n  digits = '31' + digits.slice(1);\n}\nreturn [{ json: { ...$json, whatsapp_number: digits } }];"
+      },
+      "id": "5724266e-372a-4e79-88e5-4e28069262c3",
+      "name": "Telefoonnummer normaliseren",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.EVOLUTION_API_URL}}/message/sendMedia/{{$env.EVOLUTION_INSTANCE}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  number: $json.whatsapp_number,\n  mediatype: \"document\",\n  mimetype: \"application/pdf\",\n  media: $json.pdf_url,\n  fileName: \"Factuur-\" + $json.invoice_number + \".pdf\",\n  caption: \"Beste \" + $json.client_name + \",\\n\\nHierbij factuur \" + $json.invoice_number + \" van \" + $json.company_name + \".\"\n} }}",
+        "options": {}
+      },
+      "id": "41bd5b30-8d0b-4155-9048-baa4a6f39503",
+      "name": "Factuur via WhatsApp versturen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u4cf3eHQzlZMDay3",
+          "name": "RitFactuur Evolution API"
+        }
+      },
+      "notes": "Credential: Header Auth, header 'apikey' = EVOLUTION_API_KEY. Los aan te maken (geen Bearer-prefix, Evolution API verwacht de kale sleutel in een 'apikey'-header)."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE invoices SET whatsapp_sent_at = now() WHERE id = '{{$('Factuurgegevens ophalen').item.json.id}}';",
+        "options": {}
+      },
+      "id": "b9aeeb62-c616-4478-8b44-5ebe57052e4d",
+      "name": "Factuur bijwerken (WhatsApp verstuurd)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sP3ewOPDIp8yBPVY",
+          "name": "RitFactuur Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c0fede84-0bb4-4f2a-8023-8d4847eb95e2",
+      "name": "OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        64
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Factuurgegevens ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuurgegevens ophalen": {
+      "main": [
+        [
+          {
+            "node": "Heeft telefoonnummer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heeft telefoonnummer?": {
+      "main": [
+        [
+          {
+            "node": "Telefoonnummer normaliseren",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telefoonnummer normaliseren": {
+      "main": [
+        [
+          {
+            "node": "Factuur via WhatsApp versturen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuur via WhatsApp versturen": {
+      "main": [
+        [
+          {
+            "node": "Factuur bijwerken (WhatsApp verstuurd)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factuur bijwerken (WhatsApp verstuurd)": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

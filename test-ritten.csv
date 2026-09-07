@@ -1,0 +1,2 @@
+ride_date,pickup_address,dropoff_address,distance_km,amount_excl_btw,client_name,external_ride_id
+2026-08-24,Station Utrecht,Schiphol,45,65.00,Elhoucine Elhilali,TEST-001
