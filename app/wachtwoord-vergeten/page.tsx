@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { getPublicAppUrl } from "@/lib/public-url";
 
 export default function WachtwoordVergetenPage() {
   const [email, setEmail] = useState("");
@@ -17,7 +18,7 @@ export default function WachtwoordVergetenPage() {
 
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/wachtwoord-resetten`,
+      redirectTo: `${getPublicAppUrl()}/wachtwoord-resetten`,
     });
 
     setLoading(false);

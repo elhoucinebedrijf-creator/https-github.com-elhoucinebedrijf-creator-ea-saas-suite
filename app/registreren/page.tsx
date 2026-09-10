@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { getPublicAppUrl } from "@/lib/public-url";
 import Logo from "@/components/Logo";
 import AuthSplitLayout from "@/components/AuthSplitLayout";
 
@@ -47,7 +48,13 @@ export default function RegistrerenPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${getPublicAppUrl()}/dashboard`,
+      },
+    });
 
     setLoading(false);
     if (error) {
