@@ -11,6 +11,7 @@ import {
   MailCheck,
   Repeat2,
   ShieldCheck,
+  Sparkles,
   WalletCards,
   Workflow,
 } from "lucide-react";
@@ -27,7 +28,8 @@ export type ProductKey =
   | "mkb-integrator"
   | "klantenservice-assistent"
   | "invoice-cashflow"
-  | "content-repurposing";
+  | "content-repurposing"
+  | "coachflow";
 
 export type EaProduct = {
   key: ProductKey;
@@ -277,6 +279,35 @@ export const products: EaProduct[] = [
     cta: "Bekijk cashflow",
   },
   {
+    key: "coachflow",
+    name: "EA CoachFlow OS",
+    shortName: "CoachFlow",
+    domain: "coachflow.elhoucineautomation.nl",
+    audience: "ZZP-coaches, trainers en begeleiders die hun praktijk professioneel willen organiseren.",
+    pain: "Intakes, klantnotities, actiepunten, afspraken, facturen en opvolging staan verspreid over losse apps.",
+    promise: "Een compleet praktijk-OS dat klanten, sessies, problemen, actieplannen, betalingen en follow-up samenbrengt.",
+    description:
+      "CoachFlow OS bundelt CRM, intake, coachingdossiers, AI sessieverslagen, actieplannen, planning, facturatie en klantportaal in een professionele SaaS voor coaches.",
+    price: "Vanaf EUR 99 per maand",
+    setupFee: "EUR 349 praktijkinrichting",
+    accent: "from-emerald-700 to-zinc-950",
+    icon: Sparkles,
+    features: ["Intakeformulier", "CRM", "Coachingdossiers", "AI sessieverslagen", "Actieplannen", "Agenda", "Facturen", "Klantportaal"],
+    workflowFolder: "EA CoachFlow OS",
+    workflowContract: [
+      "coach.intake.received",
+      "coach.client.created",
+      "coach.session.notes_submitted",
+      "coach.summary.generated",
+      "coach.action_plan.generated",
+      "coach.invoice.followup",
+      "coach.evaluation.requested",
+    ],
+    demoScenario: "Een zzp-coach verwerkt een nieuwe intake, plant het traject en genereert direct een weekplan.",
+    reportSections: ["Klantprofiel", "Probleemkaart", "Sessieverslag", "Actieplan", "Factuurstatus", "Follow-up"],
+    cta: "Start CoachFlow",
+  },
+  {
     key: "content-repurposing",
     name: "EA Content Repurposing Engine",
     shortName: "Content Engine",
@@ -304,6 +335,7 @@ export const highlightedProductKeys: ProductKey[] = [
   "smbautomate",
   "eduflow",
   "freelanceflow",
+  "coachflow",
 ];
 
 export function getProduct(key: string) {
@@ -317,8 +349,8 @@ export function getProductByDomain(host?: string | null) {
 }
 
 export const suiteMetrics = [
-  { label: "SaaS-producten", value: "12" },
-  { label: "Live domeinen voorbereid", value: "5" },
+  { label: "SaaS-producten", value: "13" },
+  { label: "Live domeinen voorbereid", value: "6" },
   { label: "Workflow-contracten", value: "60+" },
   { label: "Productieblokken", value: "9" },
 ];

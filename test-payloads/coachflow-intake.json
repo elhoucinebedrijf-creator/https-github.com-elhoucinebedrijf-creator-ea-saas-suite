@@ -1,0 +1,10 @@
+{
+  "name": "Voorbeeld Klant",
+  "email": "klant@example.com",
+  "phone": "+31612345678",
+  "coachingType": "Business coaching",
+  "urgency": "Deze week starten",
+  "mainQuestion": "Ik heb te veel losse taken en geen duidelijke structuur in mijn bedrijf.",
+  "desiredOutcome": "Binnen 30 dagen wil ik een vaste weekplanning, heldere prioriteiten en betere opvolging.",
+  "focusAreas": ["Business opbouwen", "Planning en discipline", "Geld en omzet"]
+}

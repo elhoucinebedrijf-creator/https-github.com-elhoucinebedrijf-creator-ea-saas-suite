@@ -42,7 +42,11 @@ export default function DashboardPage() {
           </div>
           <div className="divide-y divide-slate-200">
             {products.map((product) => (
-              <Link key={product.key} href={`/producten/${product.key}`} className="grid gap-3 p-5 hover:bg-slate-50 md:grid-cols-[1fr_1fr_180px]">
+              <Link
+                key={product.key}
+                href={product.key === "coachflow" ? "/dashboard/coachflow" : `/producten/${product.key}`}
+                className="grid gap-3 p-5 hover:bg-slate-50 md:grid-cols-[1fr_1fr_180px]"
+              >
                 <div>
                   <p className="font-semibold text-slate-950">{product.name}</p>
                   <p className="mt-1 text-sm text-slate-600">{product.audience}</p>

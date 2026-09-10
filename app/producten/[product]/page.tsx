@@ -25,7 +25,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <h1 className="mt-6 max-w-4xl text-4xl font-bold tracking-tight sm:text-6xl">{product.name}</h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-white/85">{product.description}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href={product.key === "claimbewijs" ? "/producten/claimbewijs/start" : "/inloggen"} className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-slate-950">
+            <Link
+              href={
+                product.key === "claimbewijs"
+                  ? "/producten/claimbewijs/start"
+                  : product.key === "coachflow"
+                    ? "/producten/coachflow/start"
+                    : "/inloggen"
+              }
+              className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-slate-950"
+            >
               {product.cta}
               <ArrowRight className="h-4 w-4" />
             </Link>
