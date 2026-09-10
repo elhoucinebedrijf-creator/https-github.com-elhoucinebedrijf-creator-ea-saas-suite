@@ -18,7 +18,7 @@ export default function WachtwoordVergetenPage() {
 
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getPublicAppUrl()}/wachtwoord-resetten`,
+      redirectTo: `${getPublicAppUrl()}/auth/callback?next=/wachtwoord-resetten`,
     });
 
     setLoading(false);

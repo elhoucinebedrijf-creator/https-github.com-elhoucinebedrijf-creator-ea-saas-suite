@@ -24,6 +24,11 @@ function WachtwoordResettenForm() {
     // Supabase zet de recovery-sessie op basis van de link uit de e-mail
     // (hash-fragment). Even wachten tot de client-sessie klaarstaat.
     const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setReady(true);
+      }
+    });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
@@ -40,6 +45,16 @@ function WachtwoordResettenForm() {
     setLoading(true);
 
     const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      setLoading(false);
+      setError("Je resetlink is verlopen of niet goed geopend. Vraag een nieuwe link aan.");
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password });
 
     setLoading(false);
