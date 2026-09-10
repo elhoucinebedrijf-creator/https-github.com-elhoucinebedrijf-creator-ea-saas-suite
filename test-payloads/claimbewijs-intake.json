@@ -1,0 +1,11 @@
+{
+  "organizationName": "Demo Bouwadvies BV",
+  "contactName": "Samira de Vries",
+  "email": "demo@example.com",
+  "phone": "+31612345678",
+  "counterparty": "Voorbeeld Opdrachtgever BV",
+  "claimAmount": "EUR 4250",
+  "urgency": "high",
+  "claimSummary": "Opdracht is afgerond en opgeleverd, maar de opdrachtgever weigert betaling ondanks meerdere herinneringen. Er is e-mailbewijs, een getekende offerte en foto's van de oplevering.",
+  "documentsAvailable": ["Contract", "Factuur", "E-mailwisseling", "Foto's"]
+}

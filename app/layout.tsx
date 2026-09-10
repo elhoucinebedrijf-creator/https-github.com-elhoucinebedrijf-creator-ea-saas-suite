@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RitFactuur — automatische facturatie voor taxibedrijven",
+  title: "El Houcine Automation SaaS Suite",
   description:
-    "RitFactuur zet je rittendata automatisch om in BTW-conforme facturen, verstuurt ze en bewaakt betaling. Gebouwd voor Nederlandse taxi-ondernemers.",
+    "Professionele SaaS-producten voor bewijsdossiers, factuurcontrole, compliance, procesanalyse, onderwijs, freelancers en mkb-automatisering.",
 };
 
 export default function RootLayout({

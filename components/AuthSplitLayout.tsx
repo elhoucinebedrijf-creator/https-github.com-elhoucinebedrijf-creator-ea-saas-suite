@@ -1,7 +1,7 @@
 const HIGHLIGHTS = [
-  "BTW-conforme facturen in één klik",
-  "Verzending via e-mail én WhatsApp",
-  "Automatische betaalherinneringen",
+  "Klantportaal, dossiers en rapporten",
+  "Betalingen en e-mailopvolging",
+  "Automatische procesafhandeling",
 ];
 
 export default function AuthSplitLayout({
@@ -34,7 +34,7 @@ export default function AuthSplitLayout({
               <path d="M25 30h13M25 35h13M25 40h8" stroke="#2f7d63" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-          <span className="text-lg font-bold text-white">RitFactuur</span>
+          <span className="text-lg font-bold text-white">EA SaaS Suite</span>
         </div>
         <div className="relative">
           <span className="text-xs font-semibold uppercase tracking-wider text-brand-100">{eyebrow}</span>
@@ -49,7 +49,7 @@ export default function AuthSplitLayout({
             ))}
           </ul>
         </div>
-        <p className="relative text-xs text-brand-100">Gebouwd voor Nederlandse taxi-ondernemers.</p>
+        <p className="relative text-xs text-brand-100">Gebouwd voor ondernemers, scholen en mkb-teams.</p>
       </div>
       <div className="flex w-full flex-col overflow-y-auto lg:w-1/2">{children}</div>
     </div>

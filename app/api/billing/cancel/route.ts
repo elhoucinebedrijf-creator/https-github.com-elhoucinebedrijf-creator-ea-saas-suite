@@ -1,44 +1,17 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
+import { insertIfConfigured } from "@/lib/server/audit";
 
-// Zet het abonnement op 'canceled'. Omdat recurring billing zelf wordt
-// aangestuurd door de "Recurring Subscription Billing" n8n-cron (die alleen
-// subscriptions met status 'active' oppikt — zie n8n/workflows/
-// recurring-billing-cron.json), is dit voldoende om toekomstige incasso's te
-// stoppen. Er is geen Mollie-subscriptionobject om apart op te zeggen: dit
-// project gebruikt Mollie's first-payment + mandate-aanpak, geen Mollie
-// Subscriptions API.
-export async function POST() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
-  }
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}));
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("tenant_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile) {
-    return NextResponse.json({ error: "Geen tenant gevonden." }, { status: 403 });
-  }
+  await insertIfConfigured("ea_audit_logs", {
+    organization_id: body.organizationId ?? null,
+    product_key: body.product ?? null,
+    action: "subscription.cancel_requested",
+    entity_type: "organization",
+    entity_id: body.organizationId ?? null,
+    metadata: body,
+  });
 
-  const { error } = await supabase
-    .from("subscriptions")
-    .update({ status: "canceled" })
-    .eq("tenant_id", profile.tenant_id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  await supabase
-    .from("tenants")
-    .update({ subscription_status: "canceled" })
-    .eq("id", profile.tenant_id);
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, status: "cancel_requested" });
 }

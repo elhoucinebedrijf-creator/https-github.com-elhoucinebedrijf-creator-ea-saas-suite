@@ -1,5 +1,4 @@
 import Link from "next/link";
-import SignOutButton from "@/components/SignOutButton";
 import Logo from "@/components/Logo";
 
 export default function AccountInBehandelingPage() {
@@ -20,9 +19,9 @@ export default function AccountInBehandelingPage() {
       >
         Registratie afronden
       </Link>
-      <div className="mt-4">
-        <SignOutButton />
-      </div>
+      <Link href="/" className="mt-4 text-sm font-medium text-slate-600 hover:text-slate-950">
+        Terug naar overzicht
+      </Link>
     </main>
   );
 }

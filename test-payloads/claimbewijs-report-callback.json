@@ -1,0 +1,14 @@
+{
+  "organizationId": "00000000-0000-0000-0000-000000000000",
+  "caseId": "00000000-0000-0000-0000-000000000001",
+  "title": "ClaimBewijs rapport - Demo Bouwadvies BV",
+  "sections": [
+    "Dossieroverzicht",
+    "Chronologische tijdlijn",
+    "Sterke en zwakke bewijsstukken",
+    "Risico-inschatting",
+    "Actielijst"
+  ],
+  "reportHtml": "<h1>ClaimBewijs rapport</h1><p>Demo rapport klaar voor review.</p>",
+  "reportPdfPath": "claimbewijs/demo-bouwadvies/rapport.pdf"
+}

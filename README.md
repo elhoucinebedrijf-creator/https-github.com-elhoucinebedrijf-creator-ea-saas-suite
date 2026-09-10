@@ -1,43 +1,55 @@
-# RitFactuur
+# EA SaaS Suite
 
-Automatische facturatie voor Nederlandse taxi-ondernemers. Zet rittendata
-(geëxporteerd uit je boordcomputer/KVM-systeem, of handmatig ingevoerd) om in
-BTW-conforme PDF-facturen, verstuurt ze en bewaakt betaling — zonder Excel.
+Professionele basis om de EA n8n-producten als verkoopklare SaaS aan te bieden.
 
-## Stack
+## Wat zit erin
 
-- **Next.js** (App Router, TypeScript, Tailwind) — dashboard + publieke site
-- **Supabase** (Postgres, Auth, Storage) — system of record, RLS per tenant
-- **n8n** — orchestratie: ritten verwerken, PDF's genereren, e-mails, herinneringen
-- **Gotenberg** — self-hosted HTML→PDF voor factuurgeneratie
-- **Mollie** — betalingen (SaaS-abonnement + toekomstig betaallinks per factuur)
+- Publieke suite-homepage
+- Productcatalogus voor 12 SaaS-producten
+- Productdetailpagina per SaaS
+- Prijzenpagina
+- Demo-rapportpagina
+- Klantportaal/dashboard preview
+- API-routes voor intake, uploadregistratie, rapportstatus en Mollie-webhook
+- Supabase schema met RLS voor organisaties, leden, dossiers, uploads, rapporten, betalingen en auditlogs
+- n8n eventcontract en verkoop/onboardingdocumentatie
+- Juridische basisdocumenten met jurist-disclaimer
 
-## Snel starten
+## Belangrijke routes
 
-Zie [docs/setup.md](docs/setup.md) voor de volledige stap-voor-stap koppeling
-van Supabase, n8n, Gotenberg en Mollie. In het kort:
+- `/`
+- `/producten`
+- `/producten/claimbewijs`
+- `/producten/businessflow`
+- `/producten/smbautomate`
+- `/producten/eduflow`
+- `/producten/freelanceflow`
+- `/prijzen`
+- `/demo-rapport`
+- `/dashboard`
 
-```bash
-npm install
-cp .env.example .env    # vul in
-npm run dev
-```
+## API-contract
 
-## Structuur
+- `POST /api/intake`
+- `POST /api/uploads/register`
+- `POST /api/reports/:id/ready`
+- `POST /api/billing/mollie-webhook`
 
-```
-app/                     Next.js routes (marketing, auth, dashboard, API)
-lib/                      Supabase-clients en gedeelde BTW/factuur-logica
-components/               Client-side UI-componenten
-supabase/migrations/      Databaseschema, RLS-policies, factuurnummer-functie
-n8n/workflows/             Importeerbare n8n-workflow-exports
-infra/                     Docker Compose voor self-hosted n8n + Gotenberg
-docs/                       Setup-instructies en BTW-compliance-checklist
-```
+De routes werken in local preview zonder secrets. Met Supabase- en n8n-env vars slaan ze data op en dispatchen ze events naar n8n.
 
-## Scope
+## Live koppelen
 
-Dit is een werkende v1-basis, geen kant-en-klaar productiebedrijf. Zie de
-"v1 scope" in het oorspronkelijke implementatieplan voor wat bewust is
-uitgesteld (credit­nota's, meerdere BTW-tarieven, boordcomputer-vendor-
-detectie, bankreconciliatie, etc.).
+1. Draai `supabase/migrations/0100_ea_saas_suite.sql` in Supabase.
+2. Vul `.env.local` op basis van `.env.example`.
+3. Maak in n8n een production webhook `/webhook/ea-suite`.
+4. Behoud de bestaande EA-mappen en routeer op `product` + `event`.
+5. Zet Mollie live keys pas aan na een testbetaling met webhookcontrole.
+6. Controleer juridische teksten door een jurist voor verkoop aan echte klanten.
+
+## Domeinen
+
+- `claimbewijs.elhoucineautomation.nl`
+- `businessflow.elhoucineautomation.nl`
+- `smbautomate.elhoucineautomation.nl`
+- `eduflow.elhoucineautomation.nl`
+- `freelanceflow.elhoucineautomation.nl`

@@ -10,7 +10,7 @@ export default function Logo({ className = "" }: { className?: string }) {
         <path d="M35.5 17v8.5a2 2 0 0 0 2 2H46" stroke="#2f7d63" strokeWidth="2" />
         <path d="M25 30h13M25 35h13M25 40h8" stroke="#2f7d63" strokeWidth="2" strokeLinecap="round" />
       </svg>
-      <span className="text-lg font-bold text-brand-600">RitFactuur</span>
+      <span className="text-lg font-bold text-brand-600">EA SaaS Suite</span>
     </span>
   );
 }

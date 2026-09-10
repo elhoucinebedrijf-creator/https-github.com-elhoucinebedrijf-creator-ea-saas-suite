@@ -7,9 +7,9 @@ import Logo from "@/components/Logo";
 import AuthSplitLayout from "@/components/AuthSplitLayout";
 
 const PLANS = [
-  { id: "starter", name: "Starter", price: "€29/mnd", desc: "Tot 5 voertuigen" },
-  { id: "groei", name: "Groei", price: "€59/mnd", desc: "Tot 15 voertuigen" },
-  { id: "vloot", name: "Vloot", price: "€99/mnd", desc: "Tot 50 voertuigen" },
+  { id: "starter", name: "Starter", price: "EUR 79/mnd", desc: "Een product en basisrapportage" },
+  { id: "groei", name: "Groei", price: "EUR 199/mnd", desc: "Meerdere producten en workflowopvolging" },
+  { id: "vloot", name: "Scale", price: "EUR 399/mnd", desc: "Teamportaal, maatwerkflows en prioriteit" },
 ];
 
 export default function RegistrerenPage() {
@@ -85,9 +85,9 @@ export default function RegistrerenPage() {
 
   return (
     <AuthSplitLayout
-      eyebrow="Nieuw bij RitFactuur"
-      heading="Automatische facturatie voor je taxibedrijf."
-      lede="In een paar minuten klaar — geen creditcard nodig om te starten."
+      eyebrow="Nieuw bij EA SaaS Suite"
+      heading="Start een professioneel klantportaal."
+      lede="Kies een product, maak een organisatie aan en activeer je eerste workflow."
     >
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-16">
       <div className="mb-8 flex justify-center lg:hidden">

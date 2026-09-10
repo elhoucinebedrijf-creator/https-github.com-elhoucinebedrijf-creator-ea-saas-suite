@@ -1,0 +1,97 @@
+{
+  "targetBaseUrl": "https://claimbewijs.elhoucineautomation.nl",
+  "generatedAt": "2026-09-10T13:33:57.555Z",
+  "workflows": [
+    {
+      "id": "2mYdBdLXadnDF93N",
+      "name": "EA ClaimBewijs AI - Betaalde toegang activeren",
+      "active": false,
+      "changes": [
+        {
+          "node": "ClaimBewijs API",
+          "from": "https://ea-claimbewijs-ai.wiskundehv.chatgpt.site/api/n8n/access/activate",
+          "to": "https://claimbewijs.elhoucineautomation.nl/api/n8n/claimbewijs/access/activate",
+          "addHeader": "x-ea-signature"
+        }
+      ]
+    },
+    {
+      "id": "ubeRTFANX9ocndoz",
+      "name": "EA ClaimBewijs AI - Bewijs upload",
+      "active": false,
+      "changes": [
+        {
+          "node": "ClaimBewijs API",
+          "from": "https://ea-claimbewijs-ai.wiskundehv.chatgpt.site/api/n8n/evidence-upload",
+          "to": "https://claimbewijs.elhoucineautomation.nl/api/n8n/claimbewijs/evidence-upload",
+          "addHeader": "x-ea-signature"
+        }
+      ]
+    },
+    {
+      "id": "nmXOoaBSYenHw0DD",
+      "name": "EA ClaimBewijs AI - Bewijs validatie",
+      "active": false,
+      "changes": [
+        {
+          "node": "ClaimBewijs API",
+          "from": "https://ea-claimbewijs-ai.wiskundehv.chatgpt.site/api/n8n/evidence-validation",
+          "to": "https://claimbewijs.elhoucineautomation.nl/api/n8n/claimbewijs/evidence-validation",
+          "addHeader": "x-ea-signature"
+        }
+      ]
+    },
+    {
+      "id": "eoCYWlgKQNMgt9cK",
+      "name": "EA ClaimBewijs AI - Claimextractie",
+      "active": false,
+      "changes": [
+        {
+          "node": "ClaimBewijs API",
+          "from": "https://ea-claimbewijs-ai.wiskundehv.chatgpt.site/api/n8n/claim-extraction",
+          "to": "https://claimbewijs.elhoucineautomation.nl/api/n8n/claimbewijs/claim-extraction",
+          "addHeader": "x-ea-signature"
+        }
+      ]
+    },
+    {
+      "id": "CX7BqJfTgHvwnaPZ",
+      "name": "EA ClaimBewijs AI - Claimrisico intake",
+      "active": false,
+      "changes": [
+        {
+          "node": "ClaimBewijs API",
+          "from": "https://ea-claimbewijs-ai.wiskundehv.chatgpt.site/api/n8n/intake",
+          "to": "https://claimbewijs.elhoucineautomation.nl/api/n8n/claimbewijs/intake",
+          "addHeader": "x-ea-signature"
+        }
+      ]
+    },
+    {
+      "id": "SQrxiTxkg15igsjc",
+      "name": "EA ClaimBewijs AI - PDF claimrapport en adviesmail",
+      "active": false,
+      "changes": [
+        {
+          "node": "ClaimBewijs API",
+          "from": "https://ea-claimbewijs-ai.wiskundehv.chatgpt.site/api/n8n/reports/generate",
+          "to": "https://claimbewijs.elhoucineautomation.nl/api/n8n/claimbewijs/reports/generate",
+          "addHeader": "x-ea-signature"
+        }
+      ]
+    },
+    {
+      "id": "1tuFrCqu33A94y9q",
+      "name": "EA ClaimBewijs AI - Portaal dossier sync",
+      "active": false,
+      "changes": [
+        {
+          "node": "ClaimBewijs API",
+          "from": "https://ea-claimbewijs-ai.wiskundehv.chatgpt.site/api/n8n/portal/sync",
+          "to": "https://claimbewijs.elhoucineautomation.nl/api/n8n/claimbewijs/portal/sync",
+          "addHeader": "x-ea-signature"
+        }
+      ]
+    }
+  ]
+}

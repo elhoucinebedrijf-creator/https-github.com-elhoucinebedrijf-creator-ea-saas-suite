@@ -1,0 +1,11 @@
+{
+  "organizationId": "00000000-0000-0000-0000-000000000000",
+  "caseId": "00000000-0000-0000-0000-000000000001",
+  "fileName": "getekende-offerte.pdf",
+  "storagePath": "claimbewijs/demo-bouwadvies/getekende-offerte.pdf",
+  "mimeType": "application/pdf",
+  "metadata": {
+    "documentType": "contract",
+    "uploadedBy": "demo@example.com"
+  }
+}

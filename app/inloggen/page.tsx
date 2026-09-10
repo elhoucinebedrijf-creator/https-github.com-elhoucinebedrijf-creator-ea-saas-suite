@@ -44,15 +44,15 @@ function InloggenForm() {
   return (
     <AuthSplitLayout
       eyebrow="Welkom terug"
-      heading="Log in op je RitFactuur-dashboard."
-      lede="Beheer je ritten, facturen en betalingen op één plek."
+      heading="Log in op je EA Suite-dashboard."
+      lede="Beheer producten, dossiers, rapporten en betalingen op één plek."
     >
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
         <div className="mb-8 flex justify-center lg:hidden">
           <Logo />
         </div>
         <h1 className="text-2xl font-bold text-slate-900">Inloggen</h1>
-        <p className="mt-1 text-sm text-slate-600">Log in op je RitFactuur-dashboard.</p>
+        <p className="mt-1 text-sm text-slate-600">Log in op je EA Suite-dashboard.</p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <div>
